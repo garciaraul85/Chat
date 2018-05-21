@@ -6,4 +6,9 @@
     <string name="action_settings">Settings</string>
     <string name="text_item">Message</string>
     <string name="bt_sent">Sent</string>
+    <string name="invitation_body">Chat with me, download the app at http://www.google.com</string>
+    <string name="invitation_subject">Check my Chat app.</string>
+    <string name="no_client_email">There are no email clients installed.</string>
+    <string name="send_mail">Send mail...</string>
+    <string name="share">Share</string>
 </resources>

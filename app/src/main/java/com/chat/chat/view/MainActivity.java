@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if(item.getItemId() == R.id.menu_sign_out) {
+        if (item.getItemId() == R.id.menu_sign_out) {
             AuthUI.getInstance().signOut(this)
                     .addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
@@ -106,6 +106,9 @@ public class MainActivity extends AppCompatActivity {
                             finish();
                         }
                     });
+        } else {
+            Intent intent = new Intent(this, AccessContactsActivity.class);
+            startActivity(intent);
         }
         return true;
     }
