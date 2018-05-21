@@ -6,6 +6,7 @@ public class ChatMessage {
     private String messageText;
     private String messageUser;
     private long messageTime;
+    public String id;
 
     public ChatMessage(String messageText, String messageUser) {
         this.messageText = messageText;
@@ -43,4 +44,11 @@ public class ChatMessage {
         this.messageTime = messageTime;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 }
