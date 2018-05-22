@@ -1,11 +1,18 @@
 package com.chat.chat.view;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,16 +23,24 @@ import android.widget.Toast;
 
 import com.chat.chat.R;
 import com.chat.chat.model.ChatMessage;
+import com.chat.chat.util.FileChooser;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
+import com.nbsp.materialfilepicker.MaterialFilePicker;
+import com.nbsp.materialfilepicker.ui.FilePickerActivity;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int SIGN_IN_REQUEST_CODE = 1;
+    private static final int SELECT_IMAGE = 3;
 
     private FirebaseListAdapter<ChatMessage> adapter;
 
@@ -80,8 +95,21 @@ public class MainActivity extends AppCompatActivity {
                 // Close the app
                 finish();
             }
-        }
+        } else if (requestCode == SELECT_IMAGE) {
+            if (resultCode == RESULT_OK) {
+                if (data != null) {
+                    try {
+                        String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
+                        Log.d("TAG", "onActivityResult: " + filePath);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
+                }
+            } else if (resultCode == RESULT_CANCELED) {
+                Toast.makeText(this, "Cancelled", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override
@@ -106,11 +134,24 @@ public class MainActivity extends AppCompatActivity {
                             finish();
                         }
                     });
+        } else if (item.getItemId() == R.id.menu_share) {
+            processFile();
         } else {
             Intent intent = new Intent(this, AccessContactsActivity.class);
             startActivity(intent);
         }
         return true;
+    }
+
+    private void processFile() {
+
+        new MaterialFilePicker()
+                .withActivity(this)
+                .withRequestCode(3)
+                .withFilterDirectories(true) // Set directories filterable (false by default)
+                .withHiddenFiles(true) // Show hidden files and folders
+                .start();
+
     }
 
     private void displayChatMessages() {

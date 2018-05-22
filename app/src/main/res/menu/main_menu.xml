@@ -3,6 +3,9 @@
     <item android:title="@string/share" app:showAsAction="never"
         android:id="@+id/menu_share"/>
 
+    <item android:title="@string/invite" app:showAsAction="never"
+        android:id="@+id/menu_invite"/>
+
     <item android:title="@string/sign_out" app:showAsAction="never"
         android:id="@+id/menu_sign_out"/>
 </menu>

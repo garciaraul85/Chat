@@ -22,6 +22,11 @@ android {
     }
 }
 
+repositories {
+    maven {
+        url "http://dl.bintray.com/lukaville/maven"
+    }
+}
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
@@ -31,6 +36,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-core:9.6.0'
     implementation 'com.android.support:design:25.4.0'
     implementation 'com.firebaseui:firebase-ui:0.6.0'
+
+    compile 'com.nbsp:library:1.8'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
