@@ -27,9 +27,14 @@ import com.chat.chat.util.FileChooser;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
@@ -44,11 +49,14 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseListAdapter<ChatMessage> adapter;
 
+    private StorageReference mStorageRef;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mStorageRef = FirebaseStorage.getInstance().getReference();
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             // Start sign in/sign up activity
             startActivityForResult(
@@ -100,6 +108,36 @@ public class MainActivity extends AppCompatActivity {
                 if (data != null) {
                     try {
                         String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
+
+                        FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
+                        final StorageReference storageRef = firebaseStorage.getReferenceFromUrl("gs://chat-16ef7.appspot.com");
+
+                        Uri file = Uri.fromFile(new File(filePath));
+                        mStorageRef = storageRef.child(file.getLastPathSegment());
+                        UploadTask uploadTask = mStorageRef.putFile(file);
+                        uploadTask.addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception exception) {
+                                // Handle unsuccessful uploads
+                                Log.i("TAG", exception.toString());
+                            }
+                        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, and download URL.
+                                Uri downloadUrl = taskSnapshot.getDownloadUrl();
+
+                                FirebaseDatabase.getInstance()
+                                        .getReference()
+                                        .push()
+                                        .setValue(new ChatMessage(downloadUrl.toString(),
+                                                FirebaseAuth.getInstance()
+                                                        .getCurrentUser()
+                                                        .getDisplayName())
+                                        );
+                            }
+                        });
+
                         Log.d("TAG", "onActivityResult: " + filePath);
                     } catch (Exception e) {
                         e.printStackTrace();
