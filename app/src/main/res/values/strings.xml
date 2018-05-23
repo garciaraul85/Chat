@@ -12,4 +12,5 @@
     <string name="send_mail">Send mail...</string>
     <string name="share">Share</string>
     <string name="invite">Invite</string>
+    <string name="download_share_file">Link to download shared file</string>
 </resources>

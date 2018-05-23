@@ -1,5 +1,6 @@
 package com.chat.chat.view;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -16,6 +17,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.URLUtil;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -32,7 +35,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.nbsp.materialfilepicker.MaterialFilePicker;
@@ -40,6 +45,8 @@ import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Date;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
@@ -203,9 +210,16 @@ public class MainActivity extends AppCompatActivity {
                 TextView messageText = (TextView)v.findViewById(R.id.message_text);
                 TextView messageUser = (TextView)v.findViewById(R.id.message_user);
                 TextView messageTime = (TextView)v.findViewById(R.id.message_time);
+                TextView sharedLink  = (TextView)v.findViewById(R.id.file_url);
 
                 // Set their text
-                messageText.setText(model.getMessageText());
+                boolean isValid = URLUtil.isValidUrl(model.getMessageText());
+                if (isValid) {
+                    messageText.setText(R.string.download_share_file);
+                    sharedLink.setText(model.getMessageText());
+                } else {
+                    messageText.setText(model.getMessageText());
+                }
                 messageUser.setText(model.getMessageUser());
 
                 // Format the date before showing it
@@ -215,6 +229,20 @@ public class MainActivity extends AppCompatActivity {
         };
 
         listOfMessages.setAdapter(adapter);
+
+        listOfMessages.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position,
+                                    long id) {
+
+                boolean isValid = URLUtil.isValidUrl(adapter.getItem(position).getMessageText());
+                if (isValid) {
+                    Intent browserIntent = new Intent(
+                            Intent.ACTION_VIEW, Uri.parse(adapter.getItem(position).getMessageText()));
+                    startActivity(browserIntent);
+                }
+            }
+        });
     }
 
     private void postMessage() {
