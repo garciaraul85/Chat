@@ -9,6 +9,8 @@ public class ChatMessage {
     private String idUser;
     private long messageTime;
 
+    public ChatMessage() {}
+
     public ChatMessage(String messageText, String messageUser, String idUser) {
         this.messageText = messageText;
         this.messageUser = messageUser;
@@ -18,8 +20,12 @@ public class ChatMessage {
         messageTime = new Date().getTime();
     }
 
-    public ChatMessage(){
+    public ChatMessage(String messageUser, String idUser) {
+        this.messageUser = messageUser;
+        this.idUser      = idUser;
 
+        // Initialize to current time
+        messageTime = new Date().getTime();
     }
 
     public String getMessageText() {

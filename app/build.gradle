@@ -5,11 +5,12 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion 25
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
     defaultConfig {
         applicationId "com.chat.chat"
-        minSdkVersion 19
-        targetSdkVersion 25
+        minSdkVersion 23
+        targetSdkVersion 27
         versionCode 1
         multiDexEnabled true
         versionName "1.0"
@@ -22,6 +23,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 repositories {
@@ -32,11 +37,11 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    implementation 'com.android.support:appcompat-v7:25.4.0'
+    implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:design:27.1.1'
 
     // Firebase
     implementation 'com.google.firebase:firebase-core:9.6.0'
-    implementation 'com.android.support:design:25.4.0'
     implementation 'com.firebaseui:firebase-ui:0.6.0'
 
     implementation 'com.google.firebase:firebase-storage:9.6.0'
@@ -47,6 +52,14 @@ dependencies {
     implementation (name:'skyway',ext:'aar')
 
     implementation 'com.android.support:multidex:1.0.3'
+
+    // Live data
+    implementation "android.arch.lifecycle:livedata:1.1.1"
+    implementation "android.arch.lifecycle:viewmodel:1.1.1"
+    implementation "android.arch.lifecycle:livedata:1.1.1"
+    implementation "android.arch.lifecycle:runtime:1.1.1"
+    implementation "android.arch.lifecycle:extensions:1.1.1"
+    annotationProcessor "android.arch.lifecycle:common-java8:1.1.1"
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'

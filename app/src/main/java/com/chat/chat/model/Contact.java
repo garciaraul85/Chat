@@ -1,8 +1,6 @@
 package com.chat.chat.model;
 
-import com.orm.SugarRecord;
-
-public class Contact extends SugarRecord {
+public class Contact {
     private String name;
     private String email;
     private String uId;

@@ -1,11 +1,16 @@
 package com.chat.chat.view;
 
+import android.arch.lifecycle.Lifecycle;
+import android.arch.lifecycle.LifecycleOwner;
+import android.arch.lifecycle.LifecycleRegistry;
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
@@ -21,7 +26,6 @@ import android.widget.Toast;
 import com.chat.chat.BaseApplication;
 import com.chat.chat.R;
 import com.chat.chat.model.ChatMessage;
-import com.chat.chat.model.Contact;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -40,10 +44,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
-import io.skyway.Peer.OnCallback;
-import io.skyway.Peer.Peer;
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LifecycleOwner {
 
     private static final int SIGN_IN_REQUEST_CODE = 1;
     private static final int SELECT_FILE = 3;
@@ -52,18 +53,21 @@ public class MainActivity extends AppCompatActivity {
 
     private StorageReference mStorageRef;
 
-    private String usedId;
     private String userName;
     private HashMap contacts;
+
+    private LifecycleRegistry mLifecycleRegistry;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        mLifecycleRegistry = new LifecycleRegistry(this);
+        mLifecycleRegistry.markState(Lifecycle.State.CREATED);
+
         setContentView(R.layout.activity_main);
 
         contacts = new LinkedHashMap<String, String>();
-
-        initPeers();
 
         mStorageRef = FirebaseStorage.getInstance().getReference();
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
@@ -88,29 +92,21 @@ public class MainActivity extends AppCompatActivity {
             displayChatMessages();
         }
 
-        //postMessage();
+        postMessage();
     }
 
-    //
-    // Get PeerId
-    //
-    private void initPeers() {
-        // OPEN
-        ((BaseApplication) getApplication()).get_peer().on(Peer.PeerEventEnum.OPEN, new OnCallback() {
-            @Override
-            public void onCallback(Object object) {
-                // Show my ID
-                usedId = (String) object;
-                // Enable the post message as soon as you get a userId
-                postMessage();
-            }
-        });
+    @Override
+    public void onStart() {
+        super.onStart();
+        mLifecycleRegistry.markState(Lifecycle.State.STARTED);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode,
                                     Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        final String usedId = ((BaseApplication) getApplication()).getUsedId();
 
         if (requestCode == SIGN_IN_REQUEST_CODE) {
             if(resultCode == RESULT_OK) {
@@ -224,6 +220,8 @@ public class MainActivity extends AppCompatActivity {
                 .getCurrentUser()
                 .getDisplayName();
 
+        postUserId();
+
         ListView listOfMessages = (ListView) findViewById(R.id.rvChat);
 
         adapter = new FirebaseListAdapter<ChatMessage>(this, ChatMessage.class,
@@ -231,31 +229,32 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected void populateView(View v, ChatMessage model, int position) {
                 // Get references to the views of message.xml
-                TextView messageText = (TextView)v.findViewById(R.id.message_text);
-                TextView messageUser = (TextView)v.findViewById(R.id.message_user);
-                TextView messageTime = (TextView)v.findViewById(R.id.message_time);
-                TextView sharedLink  = (TextView)v.findViewById(R.id.file_url);
+                TextView messageText = v.findViewById(R.id.message_text);
+                TextView messageUser = v.findViewById(R.id.message_user);
+                TextView messageTime = v.findViewById(R.id.message_time);
+                TextView sharedLink  = v.findViewById(R.id.file_url);
 
-                // Set their text
-                boolean isValid = URLUtil.isValidUrl(model.getMessageText());
-                if (isValid) {
-                    messageText.setText(R.string.download_share_file);
-                    sharedLink.setText(model.getMessageText());
+                if (model.getMessageText() != null) {
+                    // Set their text
+                    boolean isValid = URLUtil.isValidUrl(model.getMessageText());
+                    if (isValid) {
+                        messageText.setText(R.string.download_share_file);
+                        sharedLink.setText(model.getMessageText());
+                    } else {
+                        messageText.setText(model.getMessageText());
+                    }
+                    messageUser.setText(model.getMessageUser());
+
+                    // Format the date before showing it
+                    messageTime.setText(DateFormat.format("dd-MM-yyyy (HH:mm:ss)",
+                            model.getMessageTime()));
                 } else {
-                    messageText.setText(model.getMessageText());
+                    if (!model.getMessageUser().equals(userName) && model.getIdUser() != null) {
+                        contacts.put(model.getMessageUser(), model.getIdUser());
+                    }
                 }
-                messageUser.setText(model.getMessageUser());
 
-                // Format the date before showing it
-                messageTime.setText(DateFormat.format("dd-MM-yyyy (HH:mm:ss)",
-                        model.getMessageTime()));
 
-                Contact contact = new Contact(
-                        model.getMessageUser(), null, model.getIdUser());
-
-                if (!model.getMessageUser().equals(userName)) {
-                    contacts.put(model.getMessageUser(), model.getIdUser());
-                }
             }
         };
 
@@ -280,6 +279,10 @@ public class MainActivity extends AppCompatActivity {
         FloatingActionButton fab =
                 (FloatingActionButton)findViewById(R.id.fab);
 
+        final String usedId = ((BaseApplication) getApplication()).getUsedId();
+
+        Log.d("TAG", "postMessage: " + usedId);
+
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -300,4 +303,27 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void postUserId() {
+        final Observer<String> userIdObserver = new Observer<String>() {
+            @Override
+            public void onChanged(@Nullable final String userId) {
+                if (userId != null) {
+                    FirebaseDatabase.getInstance()
+                            .getReference()
+                            .push()
+                            .setValue(new ChatMessage(
+                                    userName, userId));
+                }
+            }
+        };
+
+        ((BaseApplication) getApplication()).getUsedIdLiveData().observe(this, userIdObserver);
+
+    }
+
+    @NonNull
+    @Override
+    public Lifecycle getLifecycle() {
+        return mLifecycleRegistry;
+    }
 }
