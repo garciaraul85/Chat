@@ -21,6 +21,7 @@ import android.widget.Toast;
 import com.chat.chat.BaseApplication;
 import com.chat.chat.R;
 import com.chat.chat.model.ChatMessage;
+import com.chat.chat.model.Contact;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -36,6 +37,8 @@ import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import io.skyway.Peer.OnCallback;
 import io.skyway.Peer.Peer;
@@ -49,19 +52,16 @@ public class MainActivity extends AppCompatActivity {
 
     private StorageReference mStorageRef;
 
-    // WebRTC
-    //
-    // Set your APIkey and Domain
-    //
-    private static final String API_KEY = "b4a52f5f-fc52-4939-9c9b-c2adaf9fe043";
-    private static final String DOMAIN = "localhost";
     private String usedId;
-    private Peer _peer;
+    private String userName;
+    private HashMap contacts;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        contacts = new LinkedHashMap<String, String>();
 
         initPeers();
 
@@ -219,6 +219,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void displayChatMessages() {
+
+        this.userName = FirebaseAuth.getInstance()
+                .getCurrentUser()
+                .getDisplayName();
+
         ListView listOfMessages = (ListView) findViewById(R.id.rvChat);
 
         adapter = new FirebaseListAdapter<ChatMessage>(this, ChatMessage.class,
@@ -244,6 +249,13 @@ public class MainActivity extends AppCompatActivity {
                 // Format the date before showing it
                 messageTime.setText(DateFormat.format("dd-MM-yyyy (HH:mm:ss)",
                         model.getMessageTime()));
+
+                Contact contact = new Contact(
+                        model.getMessageUser(), null, model.getIdUser());
+
+                if (!model.getMessageUser().equals(userName)) {
+                    contacts.put(model.getMessageUser(), model.getIdUser());
+                }
             }
         };
 
@@ -278,16 +290,14 @@ public class MainActivity extends AppCompatActivity {
                 FirebaseDatabase.getInstance()
                         .getReference()
                         .push()
-                        .setValue(new ChatMessage(input.getText().toString(),
-                                FirebaseAuth.getInstance()
-                                        .getCurrentUser()
-                                        .getDisplayName(),
-                                usedId)
-                        );
+                        .setValue(new ChatMessage(
+                                input.getText().toString(),
+                                userName, usedId));
 
                 // Clear the input
                 input.setText("");
             }
         });
     }
+
 }

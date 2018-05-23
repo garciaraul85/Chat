@@ -46,7 +46,7 @@ public class AccessContactsActivity extends AppCompatActivity {
 
                 Contact dataModel= contacts.get(position);
 
-                new SendInvitationTask().execute(dataModel.email);
+                new SendInvitationTask().execute(dataModel.getEmail());
             }
         });
     }

@@ -11,9 +11,11 @@ android {
         minSdkVersion 19
         targetSdkVersion 25
         versionCode 1
+        multiDexEnabled true
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -44,6 +46,8 @@ dependencies {
     // WebRTC
     implementation (name:'skyway',ext:'aar')
 
+    implementation 'com.android.support:multidex:1.0.3'
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
@@ -52,6 +56,17 @@ dependencies {
 repositories{
     flatDir{
         dirs 'libs'
+    }
+}
+
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        def requested = details.requested
+        if (requested.group == 'com.android.support') {
+            if (!requested.name.startsWith("multidex")) {
+                details.useVersion '25.1.0'
+            }
+        }
     }
 }
 

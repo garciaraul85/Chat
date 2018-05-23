@@ -1,13 +1,43 @@
 package com.chat.chat.model;
 
-public class Contact {
-    public String name;
-    public String email;
-    public String id;
+import com.orm.SugarRecord;
 
-    public Contact(String name, String email, String id) {
+public class Contact extends SugarRecord {
+    private String name;
+    private String email;
+    private String uId;
+
+    public Contact() {
+
+    }
+
+    public Contact(String name, String email, String uId) {
         this.name = name;
         this.email = email;
-        this.id = id;
+        this.uId = uId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getuId() {
+        return uId;
+    }
+
+    public void setuId(String uId) {
+        this.uId = uId;
     }
 }

@@ -51,7 +51,7 @@ public class CustomAdapter extends ArrayAdapter<Contact> implements View.OnClick
         switch (v.getId()) {
             case R.id.item_info:
 
-                Snackbar.make(v, "Release date " + dataModel.name, Snackbar.LENGTH_LONG)
+                Snackbar.make(v, "Release date " + dataModel.getName(), Snackbar.LENGTH_LONG)
                         .setAction("No action", null).show();
 
                 break;
@@ -90,8 +90,8 @@ public class CustomAdapter extends ArrayAdapter<Contact> implements View.OnClick
         lastPosition = position;
 
 
-        viewHolder.txtName.setText(dataModel.name);
-        viewHolder.txtEmail.setText(dataModel.email);
+        viewHolder.txtName.setText(dataModel.getName());
+        viewHolder.txtEmail.setText(dataModel.getEmail());
         viewHolder.info.setOnClickListener(this);
         viewHolder.info.setTag(position);
         // Return the completed view to render on screen

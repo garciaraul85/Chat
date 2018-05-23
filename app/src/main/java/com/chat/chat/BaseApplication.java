@@ -1,11 +1,14 @@
 package com.chat.chat;
 
 import android.app.Application;
+import android.support.multidex.MultiDexApplication;
+
+import com.orm.SugarContext;
 
 import io.skyway.Peer.Peer;
 import io.skyway.Peer.PeerOption;
 
-public class BaseApplication extends Application {
+public class BaseApplication extends MultiDexApplication {
     private static final String API_KEY = "b4a52f5f-fc52-4939-9c9b-c2adaf9fe043";
     private static final String DOMAIN = "localhost";
 
