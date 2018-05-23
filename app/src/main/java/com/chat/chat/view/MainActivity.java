@@ -1,15 +1,9 @@
 package com.chat.chat.view;
 
-import android.app.Activity;
 import android.content.Intent;
-import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.DateFormat;
@@ -24,9 +18,9 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.chat.chat.BaseApplication;
 import com.chat.chat.R;
 import com.chat.chat.model.ChatMessage;
-import com.chat.chat.util.FileChooser;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -35,33 +29,41 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Date;
-import java.util.regex.Pattern;
+
+import io.skyway.Peer.OnCallback;
+import io.skyway.Peer.Peer;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int SIGN_IN_REQUEST_CODE = 1;
-    private static final int SELECT_IMAGE = 3;
+    private static final int SELECT_FILE = 3;
 
     private FirebaseListAdapter<ChatMessage> adapter;
 
     private StorageReference mStorageRef;
 
+    // WebRTC
+    //
+    // Set your APIkey and Domain
+    //
+    private static final String API_KEY = "b4a52f5f-fc52-4939-9c9b-c2adaf9fe043";
+    private static final String DOMAIN = "localhost";
+    private String usedId;
+    private Peer _peer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        initPeers();
 
         mStorageRef = FirebaseStorage.getInstance().getReference();
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
@@ -86,7 +88,23 @@ public class MainActivity extends AppCompatActivity {
             displayChatMessages();
         }
 
-        postMessage();
+        //postMessage();
+    }
+
+    //
+    // Get PeerId
+    //
+    private void initPeers() {
+        // OPEN
+        ((BaseApplication) getApplication()).get_peer().on(Peer.PeerEventEnum.OPEN, new OnCallback() {
+            @Override
+            public void onCallback(Object object) {
+                // Show my ID
+                usedId = (String) object;
+                // Enable the post message as soon as you get a userId
+                postMessage();
+            }
+        });
     }
 
     @Override
@@ -110,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
                 // Close the app
                 finish();
             }
-        } else if (requestCode == SELECT_IMAGE) {
+        } else if (requestCode == SELECT_FILE) {
             if (resultCode == RESULT_OK) {
                 if (data != null) {
                     try {
@@ -140,7 +158,8 @@ public class MainActivity extends AppCompatActivity {
                                         .setValue(new ChatMessage(downloadUrl.toString(),
                                                 FirebaseAuth.getInstance()
                                                         .getCurrentUser()
-                                                        .getDisplayName())
+                                                        .getDisplayName(),
+                                                usedId)
                                         );
                             }
                         });
@@ -262,7 +281,8 @@ public class MainActivity extends AppCompatActivity {
                         .setValue(new ChatMessage(input.getText().toString(),
                                 FirebaseAuth.getInstance()
                                         .getCurrentUser()
-                                        .getDisplayName())
+                                        .getDisplayName(),
+                                usedId)
                         );
 
                 // Clear the input

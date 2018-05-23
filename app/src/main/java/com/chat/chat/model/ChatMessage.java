@@ -3,14 +3,16 @@ package com.chat.chat.model;
 import java.util.Date;
 
 public class ChatMessage {
+    private String id;
     private String messageText;
     private String messageUser;
+    private String idUser;
     private long messageTime;
-    public String id;
 
-    public ChatMessage(String messageText, String messageUser) {
+    public ChatMessage(String messageText, String messageUser, String idUser) {
         this.messageText = messageText;
         this.messageUser = messageUser;
+        this.idUser      = idUser;
 
         // Initialize to current time
         messageTime = new Date().getTime();
@@ -50,5 +52,13 @@ public class ChatMessage {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getIdUser() {
+        return idUser;
+    }
+
+    public void setIdUser(String idUser) {
+        this.idUser = idUser;
     }
 }

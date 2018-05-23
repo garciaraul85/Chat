@@ -106,7 +106,7 @@ public class AccessContactsActivity extends AppCompatActivity {
                         // if the user user has an email or phone then add it to contacts
                         if ((!TextUtils.isEmpty(email) && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
                                 && !email.equalsIgnoreCase(name)) || (!TextUtils.isEmpty(phone))) {
-                            Contact contact = new Contact(name, email);
+                            Contact contact = new Contact(name, email, null);
                             contacts.add(contact);
                         }
 
