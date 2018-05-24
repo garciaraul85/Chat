@@ -7,6 +7,7 @@ public class ChatMessage {
     private String messageText;
     private String messageUser;
     private String idUser;
+    private boolean isMessage;
     private long messageTime;
 
     public ChatMessage() {}
@@ -15,7 +16,7 @@ public class ChatMessage {
         this.messageText = messageText;
         this.messageUser = messageUser;
         this.idUser      = idUser;
-
+        this.isMessage  = true;
         // Initialize to current time
         messageTime = new Date().getTime();
     }
@@ -66,5 +67,13 @@ public class ChatMessage {
 
     public void setIdUser(String idUser) {
         this.idUser = idUser;
+    }
+
+    public boolean isMessage() {
+        return isMessage;
+    }
+
+    public void setMessage(boolean message) {
+        isMessage = message;
     }
 }

@@ -1,5 +1,6 @@
 package com.chat.chat.view;
 
+import android.app.Activity;
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.LifecycleRegistry;
@@ -11,16 +12,14 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.text.format.DateFormat;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.URLUtil;
-import android.widget.AdapterView;
 import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.chat.chat.BaseApplication;
@@ -33,7 +32,12 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -41,10 +45,12 @@ import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements LifecycleOwner {
+public class MainActivity extends AppCompatActivity implements LifecycleOwner, ChatAdapter.OnItemClickListener {
 
     private static final int SIGN_IN_REQUEST_CODE = 1;
     private static final int SELECT_FILE = 3;
@@ -56,18 +62,33 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner {
     private String userName;
     private HashMap contacts;
 
+    private ChatAdapter chatAdapter;
+    private RecyclerView chatListRecycler;
+    private List<ChatMessage> chatMessageList = new ArrayList<>();
+
     private LifecycleRegistry mLifecycleRegistry;
+    private Activity activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        activity = this;
 
         mLifecycleRegistry = new LifecycleRegistry(this);
         mLifecycleRegistry.markState(Lifecycle.State.CREATED);
 
         setContentView(R.layout.activity_main);
 
+        chatListRecycler = (RecyclerView) findViewById(R.id.rvChat);
+        chatListRecycler.setHasFixedSize(true);
+
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        chatListRecycler.setLayoutManager(linearLayoutManager);
+
         contacts = new LinkedHashMap<String, String>();
+
 
         mStorageRef = FirebaseStorage.getInstance().getReference();
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
@@ -222,55 +243,62 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner {
 
         postUserId();
 
-        ListView listOfMessages = (ListView) findViewById(R.id.rvChat);
+        chatAdapter = new ChatAdapter(this);
+        chatListRecycler.setAdapter(chatAdapter);
 
-        adapter = new FirebaseListAdapter<ChatMessage>(this, ChatMessage.class,
-                R.layout.message, FirebaseDatabase.getInstance().getReference()) {
+        //ListView listOfMessages = (ListView) findViewById(R.id.rvChat);
+
+        DatabaseReference mFirebaseRef = FirebaseDatabase.getInstance().getReference("message");
+
+        mFirebaseRef.addValueEventListener(new ValueEventListener() {
             @Override
-            protected void populateView(View v, ChatMessage model, int position) {
-                // Get references to the views of message.xml
-                TextView messageText = v.findViewById(R.id.message_text);
-                TextView messageUser = v.findViewById(R.id.message_user);
-                TextView messageTime = v.findViewById(R.id.message_time);
-                TextView sharedLink  = v.findViewById(R.id.file_url);
-
-                if (model.getMessageText() != null) {
-                    // Set their text
-                    boolean isValid = URLUtil.isValidUrl(model.getMessageText());
-                    if (isValid) {
-                        messageText.setText(R.string.download_share_file);
-                        sharedLink.setText(model.getMessageText());
-                    } else {
-                        messageText.setText(model.getMessageText());
-                    }
-                    messageUser.setText(model.getMessageUser());
-
-                    // Format the date before showing it
-                    messageTime.setText(DateFormat.format("dd-MM-yyyy (HH:mm:ss)",
-                            model.getMessageTime()));
-                } else {
-                    if (!model.getMessageUser().equals(userName) && model.getIdUser() != null) {
-                        contacts.put(model.getMessageUser(), model.getIdUser());
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot != null && dataSnapshot.getValue() != null) {
+                    try {
+                        chatMessageList.clear();
+                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                            ChatMessage model = ds.getValue(ChatMessage.class);
+                            if (model.isMessage()) {
+                                chatMessageList.add(model);
+                                chatAdapter.setItems(chatMessageList);
+                                chatAdapter.notifyDataSetChanged();
+                            }
+                        }
+                    } catch (Exception ex) {
+                        Log.e("TAG", ex.getMessage());
                     }
                 }
-
-
             }
-        };
 
-        listOfMessages.setAdapter(adapter);
-
-        listOfMessages.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position,
-                                    long id) {
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e("TAG", "onCancelled: ", databaseError.toException());
+            }
+        });
 
-                boolean isValid = URLUtil.isValidUrl(adapter.getItem(position).getMessageText());
-                if (isValid) {
-                    Intent browserIntent = new Intent(
-                            Intent.ACTION_VIEW, Uri.parse(adapter.getItem(position).getMessageText()));
-                    startActivity(browserIntent);
+        DatabaseReference mFirebaseRef2 = FirebaseDatabase.getInstance().getReference("userId");
+        mFirebaseRef2.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot != null && dataSnapshot.getValue() != null) {
+                    try {
+                        chatMessageList.clear();
+                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                            ChatMessage model = ds.getValue(ChatMessage.class);
+                            if (!model.isMessage() && !model.getMessageUser().equals(userName) && model.getIdUser() != null) {
+                                Log.d("tag", "_www add contact " + model.getIdUser());
+                                contacts.put(model.getMessageUser(), model.getIdUser());
+                            }
+                        }
+                    } catch (Exception ex) {
+                        Log.e("TAG", ex.getMessage());
+                    }
                 }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e("TAG", "onCancelled: ", databaseError.toException());
             }
         });
     }
@@ -292,6 +320,7 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner {
                 // of ChatMessage to the Firebase database
                 FirebaseDatabase.getInstance()
                         .getReference()
+                        .child("message")
                         .push()
                         .setValue(new ChatMessage(
                                 input.getText().toString(),
@@ -304,26 +333,53 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner {
     }
 
     private void postUserId() {
-        final Observer<String> userIdObserver = new Observer<String>() {
+
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
+        Query applesQuery = ref.child("userId").orderByChild("messageUser").equalTo(userName);
+
+        applesQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onChanged(@Nullable final String userId) {
-                if (userId != null) {
-                    FirebaseDatabase.getInstance()
-                            .getReference()
-                            .push()
-                            .setValue(new ChatMessage(
-                                    userName, userId));
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot appleSnapshot: dataSnapshot.getChildren()) {
+                    Log.d("tag", "_www remove value");
+                    appleSnapshot.getRef().removeValue();
                 }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e("TAG", "onCancelled", databaseError.toException());
+            }
+        });
+
+        final Observer<String> userIdObserver = userId -> {
+            if (userId != null) {
+                Log.d("tag", "_www add value " + userId);
+                FirebaseDatabase.getInstance()
+                        .getReference()
+                        .child("userId")
+                        .push()
+                        .setValue(new ChatMessage(
+                                userName, userId));
             }
         };
 
-        ((BaseApplication) getApplication()).getUsedIdLiveData().observe(this, userIdObserver);
-
+        ((BaseApplication) getApplication()).getUsedIdLiveData().observe((MainActivity) activity, userIdObserver);
     }
 
     @NonNull
     @Override
     public Lifecycle getLifecycle() {
         return mLifecycleRegistry;
+    }
+
+    @Override
+    public void onItemClick(ChatMessage item) {
+        boolean isValid = URLUtil.isValidUrl(item.getMessageText());
+        if (isValid) {
+            Intent browserIntent = new Intent(
+                    Intent.ACTION_VIEW, Uri.parse(item.getMessageText()));
+            startActivity(browserIntent);
+        }
     }
 }

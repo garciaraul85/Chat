@@ -5,59 +5,51 @@ import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.URLUtil;
 import android.widget.TextView;
 
 import com.chat.chat.R;
 import com.chat.chat.model.ChatMessage;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
-    private static final int CHAT_END = 1;
-    private static final int CHAT_START = 2;
 
-    private List<ChatMessage> mDataSet;
-    private String mId;
+    private List<ChatMessage> items;
+    private OnItemClickListener listener;
 
-    /**
-     * Called when a view has been clicked.
-     *
-     * @param dataSet Message list
-     * @param id      Device id
-     */
-    ChatAdapter(List<ChatMessage> dataSet, String id) {
-        mDataSet = dataSet;
-        mId = id;
+    public ChatAdapter(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick(ChatMessage item);
     }
 
     @Override
     public ChatAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View v;
 
-        if (viewType == CHAT_END) {
-            v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_end, parent, false);
-        } else {
-            v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_start, parent, false);
-        }
+        v = LayoutInflater.from(parent.getContext()).inflate(R.layout.message, parent, false);
 
         return new ViewHolder(v);
     }
 
     @Override
-    public int getItemViewType(int position) {
-        if (mDataSet.get(position).getId().equals(mId)) {
-            return CHAT_END;
-        }
-
-        return CHAT_START;
-    }
-
-    @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        ChatMessage model = mDataSet.get(position);
+        ChatMessage model = items.get(position);
+
+        holder.bind(items.get(position), listener);
 
         // Set their text
-        holder.messageText.setText(model.getMessageText());
+        boolean isValid = URLUtil.isValidUrl(model.getMessageText());
+        if (isValid) {
+            holder.messageText.setText(R.string.download_share_file);
+            holder.sharedLink.setText(model.getMessageText());
+        } else {
+            holder.messageText.setText(model.getMessageText());
+        }
         holder.messageUser.setText(model.getMessageUser());
 
         // Format the date before showing it
@@ -67,7 +59,25 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return mDataSet.size();
+        if (items != null) {
+            return items.size();
+        } else {
+            return 0;
+        }
+    }
+
+    private ChatMessage getItem(int position) {
+        return items.get(position);
+    }
+
+
+    public void setItems(List<ChatMessage> items) {
+        if (items == null) {
+            return;
+        }
+
+        this.items = new ArrayList<>(items);
+        notifyDataSetChanged();
     }
 
     /**
@@ -77,12 +87,23 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         TextView messageText;
         TextView messageUser;
         TextView messageTime;
+        TextView sharedLink;
 
         ViewHolder(View v) {
             super(v);
-            messageText = (TextView)v.findViewById(R.id.message_text);
-            messageUser = (TextView)v.findViewById(R.id.message_user);
-            messageTime = (TextView)v.findViewById(R.id.message_time);
+            messageText = v.findViewById(R.id.message_text);
+            messageUser = v.findViewById(R.id.message_user);
+            messageTime = v.findViewById(R.id.message_time);
+            sharedLink  = v.findViewById(R.id.file_url);
+        }
+
+        public void bind(final ChatMessage item, final OnItemClickListener listener) {
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.onItemClick(item);
+                }
+            });
         }
     }
 }
