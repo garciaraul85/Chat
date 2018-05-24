@@ -13,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -30,7 +29,6 @@ import com.chat.chat.BaseApplication;
 import com.chat.chat.R;
 import com.chat.chat.model.ChatMessage;
 import com.firebase.ui.auth.AuthUI;
-import com.firebase.ui.database.FirebaseListAdapter;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -477,5 +475,8 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
 
     private void onPeerSelected(String item) {
         Log.d("tag", "Open new activity " + item);
+        Intent intent = new Intent(getBaseContext(), VideoActivity.class);
+        intent.putExtra("strPeerId", item);
+        startActivity(intent);
     }
 }
