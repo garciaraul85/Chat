@@ -13,4 +13,5 @@
     <string name="share">Share</string>
     <string name="invite">Invite</string>
     <string name="download_share_file">Link to download shared file</string>
+    <string name="call">Call</string>
 </resources>

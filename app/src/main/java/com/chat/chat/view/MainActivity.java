@@ -1,13 +1,17 @@
 package com.chat.chat.view;
 
 import android.app.Activity;
+import android.app.FragmentManager;
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.LifecycleRegistry;
 import android.arch.lifecycle.Observer;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -44,18 +48,23 @@ import com.google.firebase.storage.UploadTask;
 import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
+import org.json.JSONArray;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
+import io.skyway.Peer.OnCallback;
+import io.skyway.Peer.Peer;
 
 public class MainActivity extends AppCompatActivity implements LifecycleOwner, ChatAdapter.OnItemClickListener {
 
     private static final int SIGN_IN_REQUEST_CODE = 1;
     private static final int SELECT_FILE = 3;
-
-    private FirebaseListAdapter<ChatMessage> adapter;
 
     private StorageReference mStorageRef;
 
@@ -69,11 +78,14 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
     private LifecycleRegistry mLifecycleRegistry;
     private Activity activity;
 
+    private Handler _handler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         activity = this;
+        _handler = new Handler(Looper.getMainLooper());
 
         mLifecycleRegistry = new LifecycleRegistry(this);
         mLifecycleRegistry.markState(Lifecycle.State.CREATED);
@@ -217,6 +229,8 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
                     });
         } else if (item.getItemId() == R.id.menu_share) {
             processFile();
+        } else if (item.getItemId() == R.id.menu_call) {
+            showPeerIDs();
         } else {
             Intent intent = new Intent(this, AccessContactsActivity.class);
             startActivity(intent);
@@ -381,5 +395,87 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
                     Intent.ACTION_VIEW, Uri.parse(item.getMessageText()));
             startActivity(browserIntent);
         }
+    }
+
+    //
+    // Listing all peers
+    //
+    void showPeerIDs() {
+        String usedId = ((BaseApplication) getApplication()).getUsedId();
+        Peer _peer = ((BaseApplication) getApplication()).get_peer();
+
+        if ((null == _peer) || (null == usedId) || (0 == usedId.length())) {
+            Toast.makeText(this, "Your PeerID is null or invalid.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Get all IDs connected to the server
+        final Context fContext = this;
+        _peer.listAllPeers(new OnCallback() {
+            @Override
+            public void onCallback(Object object) {
+                if (!(object instanceof JSONArray)) {
+                    return;
+                }
+
+                JSONArray peers = (JSONArray) object;
+                ArrayList<String> _listPeerIds = new ArrayList<>();
+                String peerId;
+
+                // Exclude my own ID
+                for (int i = 0; peers.length() > i; i++) {
+                    try {
+                        peerId = peers.getString(i);
+                        if (!usedId.equals(peerId)) {
+                            _listPeerIds.add(peerId);
+                        }
+                    } catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }
+
+                // Show IDs using DialogFragment
+                if (!contacts.isEmpty() && 0 < _listPeerIds.size()) {
+                    FragmentManager mgr = getFragmentManager();
+                    PeerListDialogFragment dialog = new PeerListDialogFragment();
+                    dialog.setListener(
+                            new PeerListDialogFragment.PeerListDialogFragmentListener() {
+                                @Override
+                                public void onItemClick(final String item) {
+                                    _handler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            onPeerSelected(item);
+                                        }
+                                    });
+                                }
+                            });
+
+                    Iterator it = contacts.entrySet().iterator();
+                    HashMap newContactList = new LinkedHashMap<String, String>();
+
+                    while (it.hasNext()) {
+                        Map.Entry pair = (Map.Entry) it.next();
+                        System.out.println(pair.getKey() + " = " + pair.getValue());
+                        for (String peer : _listPeerIds) {
+                            if (peer.equals(pair.getValue())) {
+                                newContactList.put(pair.getKey(), pair.getValue());
+                            }
+                        }
+                    }
+
+                    dialog.setItems(newContactList);
+                    dialog.show(mgr, "peerlist");
+                } else {
+                    Toast.makeText(fContext, "PeerID list (other than your ID) is empty.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+
+    }
+
+    private void onPeerSelected(String item) {
+        Log.d("tag", "Open new activity " + item);
     }
 }
