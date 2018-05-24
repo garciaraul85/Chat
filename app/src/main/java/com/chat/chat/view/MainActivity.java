@@ -6,6 +6,8 @@ import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.LifecycleRegistry;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProvider;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -13,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -28,6 +31,8 @@ import android.widget.Toast;
 import com.chat.chat.BaseApplication;
 import com.chat.chat.R;
 import com.chat.chat.model.ChatMessage;
+import com.chat.chat.viewmodel.ChatViewModel;
+import com.chat.chat.viewmodel.ContactsChatViewModel;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -64,6 +69,9 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
     private static final int SIGN_IN_REQUEST_CODE = 1;
     private static final int SELECT_FILE = 3;
 
+    private ChatViewModel chatViewModel;
+    private ContactsChatViewModel contactsChatViewModel;
+
     private StorageReference mStorageRef;
 
     private String userName;
@@ -88,6 +96,9 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
         mLifecycleRegistry = new LifecycleRegistry(this);
         mLifecycleRegistry.markState(Lifecycle.State.CREATED);
 
+        chatViewModel          = ViewModelProviders.of(this).get(ChatViewModel.class);
+        contactsChatViewModel = ViewModelProviders.of(this).get(ContactsChatViewModel.class);
+
         setContentView(R.layout.activity_main);
 
         chatListRecycler = (RecyclerView) findViewById(R.id.rvChat);
@@ -98,7 +109,6 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
         chatListRecycler.setLayoutManager(linearLayoutManager);
 
         contacts = new LinkedHashMap<String, String>();
-
 
         mStorageRef = FirebaseStorage.getInstance().getReference();
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
@@ -260,59 +270,18 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
 
         //ListView listOfMessages = (ListView) findViewById(R.id.rvChat);
 
-        DatabaseReference mFirebaseRef = FirebaseDatabase.getInstance().getReference("message");
-
-        mFirebaseRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot != null && dataSnapshot.getValue() != null) {
-                    try {
-                        chatMessageList.clear();
-                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
-                            ChatMessage model = ds.getValue(ChatMessage.class);
-                            if (model.isMessage()) {
-                                chatMessageList.add(model);
-                                chatAdapter.setItems(chatMessageList);
-                                chatAdapter.notifyDataSetChanged();
-                            }
-                        }
-                    } catch (Exception ex) {
-                        Log.e("TAG", ex.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e("TAG", "onCancelled: ", databaseError.toException());
-            }
+        chatViewModel.getChatMessageListLiveData().observe(this, chatMessages -> {
+            Log.d("TAG", "_xxx onChanged: ");
+            chatAdapter.setItems(chatMessages);
+            chatAdapter.notifyDataSetChanged();
         });
+        chatViewModel.fetchChatMessages();
 
-        DatabaseReference mFirebaseRef2 = FirebaseDatabase.getInstance().getReference("userId");
-        mFirebaseRef2.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot != null && dataSnapshot.getValue() != null) {
-                    try {
-                        chatMessageList.clear();
-                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
-                            ChatMessage model = ds.getValue(ChatMessage.class);
-                            if (!model.isMessage() && !model.getMessageUser().equals(userName) && model.getIdUser() != null) {
-                                Log.d("tag", "_www add contact " + model.getIdUser());
-                                contacts.put(model.getMessageUser(), model.getIdUser());
-                            }
-                        }
-                    } catch (Exception ex) {
-                        Log.e("TAG", ex.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e("TAG", "onCancelled: ", databaseError.toException());
-            }
+        contactsChatViewModel.getContactsLiveData().observe(this, contactsViewModel -> {
+            contacts.clear();
+            contacts.putAll(contactsViewModel);
         });
+        contactsChatViewModel.fetchContactsChatIds(userName);
     }
 
     private void postMessage() {
@@ -323,29 +292,20 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
 
         Log.d("TAG", "postMessage: " + usedId);
 
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                EditText input = (EditText)findViewById(R.id.input);
+        fab.setOnClickListener(view -> {
+            EditText input = (EditText)findViewById(R.id.input);
 
-                // Read the input field and push a new instance
-                // of ChatMessage to the Firebase database
-                FirebaseDatabase.getInstance()
-                        .getReference()
-                        .child("message")
-                        .push()
-                        .setValue(new ChatMessage(
-                                input.getText().toString(),
-                                userName, usedId));
+            chatViewModel.postMessage(
+                    input.getText().toString(), userName, usedId);
 
-                // Clear the input
-                input.setText("");
-            }
+            // Clear the input
+            input.setText("");
         });
     }
 
-    private void postUserId() {
-
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
         Query applesQuery = ref.child("userId").orderByChild("messageUser").equalTo(userName);
 
@@ -353,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot appleSnapshot: dataSnapshot.getChildren()) {
-                    Log.d("tag", "_www remove value");
+                    Log.d("tag", "_rrr remove value");
                     appleSnapshot.getRef().removeValue();
                 }
             }
@@ -363,10 +323,12 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
                 Log.e("TAG", "onCancelled", databaseError.toException());
             }
         });
+    }
 
+    private void postUserId() {
         final Observer<String> userIdObserver = userId -> {
             if (userId != null) {
-                Log.d("tag", "_www add value " + userId);
+                Log.d("tag", "_rrr add value " + userId);
                 FirebaseDatabase.getInstance()
                         .getReference()
                         .child("userId")

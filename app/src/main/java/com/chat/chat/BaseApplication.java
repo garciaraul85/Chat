@@ -35,14 +35,11 @@ public class BaseApplication extends MultiDexApplication {
         //
         // Get PeerId
         //
-        _peer.on(Peer.PeerEventEnum.OPEN, new OnCallback() {
-            @Override
-            public void onCallback(Object object) {
-                // Show my ID
-                usedId = (String) object;
-                usedIdLiveData.postValue(usedId);
-                Log.d("TAG", "onCallback: " + usedId);
-            }
+        _peer.on(Peer.PeerEventEnum.OPEN, object -> {
+            // Show my ID
+            usedId = (String) object;
+            usedIdLiveData.postValue(usedId);
+            Log.d("TAG", "onCallback: " + usedId);
         });
     }
 
