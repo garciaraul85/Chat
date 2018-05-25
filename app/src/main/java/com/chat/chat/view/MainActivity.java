@@ -5,8 +5,6 @@ import android.app.FragmentManager;
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.LifecycleRegistry;
-import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
@@ -15,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -23,7 +20,6 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.webkit.URLUtil;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -39,12 +35,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -58,7 +49,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import io.skyway.Peer.OnCallback;
@@ -79,10 +69,8 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
 
     private ChatAdapter chatAdapter;
     private RecyclerView chatListRecycler;
-    private List<ChatMessage> chatMessageList = new ArrayList<>();
 
     private LifecycleRegistry mLifecycleRegistry;
-    private Activity activity;
 
     private Handler _handler;
 
@@ -90,7 +78,6 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        activity = this;
         _handler = new Handler(Looper.getMainLooper());
 
         mLifecycleRegistry = new LifecycleRegistry(this);
