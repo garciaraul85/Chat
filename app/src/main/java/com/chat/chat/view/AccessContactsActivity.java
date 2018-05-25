@@ -1,18 +1,19 @@
 package com.chat.chat.view;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
-import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.provider.ContactsContract;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.ShareCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.provider.ContactsContract;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.ShareCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -22,7 +23,6 @@ import com.chat.chat.R;
 import com.chat.chat.model.Contact;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class AccessContactsActivity extends AppCompatActivity {
     ListView listView;
@@ -32,7 +32,28 @@ public class AccessContactsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_access_contacts);
+
+        readContacts();
+
         new FetchContactsTask().execute();
+    }
+
+    private void readContacts() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
+                == PackageManager.PERMISSION_GRANTED) {
+            new FetchContactsTask().execute();
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)) {
+                    Toast.makeText(this, "Read contacts permission is required to function app correctly", Toast.LENGTH_LONG).show();
+                } else {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.READ_CONTACTS},
+                            1);
+                }
+            }
+        }
+
     }
 
     private void loadContacts(final ArrayList<Contact> contacts) {
