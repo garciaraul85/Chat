@@ -303,42 +303,9 @@ public class MainActivity extends AppCompatActivity implements LifecycleOwner, C
         });
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
-        Query applesQuery = ref.child("userId").orderByChild("messageUser").equalTo(userName);
-
-        applesQuery.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot appleSnapshot: dataSnapshot.getChildren()) {
-                    Log.d("tag", "_rrr remove value");
-                    appleSnapshot.getRef().removeValue();
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e("TAG", "onCancelled", databaseError.toException());
-            }
-        });
-    }
 
     private void postUserId() {
-        final Observer<String> userIdObserver = userId -> {
-            if (userId != null) {
-                Log.d("tag", "_rrr add value " + userId);
-                FirebaseDatabase.getInstance()
-                        .getReference()
-                        .child("userId")
-                        .push()
-                        .setValue(new ChatMessage(
-                                userName, userId));
-            }
-        };
-
-        ((BaseApplication) getApplication()).getUsedIdLiveData().observe((MainActivity) activity, userIdObserver);
+        contactsChatViewModel.postUserId(this, userName);
     }
 
     @NonNull

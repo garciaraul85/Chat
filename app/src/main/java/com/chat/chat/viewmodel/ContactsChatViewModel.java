@@ -73,6 +73,19 @@ public class ContactsChatViewModel extends AndroidViewModel {
                     Log.d("tag", "_rrr remove value");
                     appleSnapshot.getRef().removeValue();
                 }
+                final Observer<String> userIdObserver = userId -> {
+                    if (userId != null) {
+                        Log.d("tag", "_rrr add value " + userId);
+                        FirebaseDatabase.getInstance()
+                                .getReference()
+                                .child("userId")
+                                .push()
+                                .setValue(new ChatMessage(
+                                        userName, userId));
+                    }
+                };
+
+                ((BaseApplication) getApplication()).getUsedIdLiveData().observe(activity, userIdObserver);
             }
 
             @Override
@@ -81,19 +94,7 @@ public class ContactsChatViewModel extends AndroidViewModel {
             }
         });
 
-        final Observer<String> userIdObserver = userId -> {
-            if (userId != null) {
-                Log.d("tag", "_rrr add value " + userId);
-                FirebaseDatabase.getInstance()
-                        .getReference()
-                        .child("userId")
-                        .push()
-                        .setValue(new ChatMessage(
-                                userName, userId));
-            }
-        };
 
-        ((BaseApplication) getApplication()).getUsedIdLiveData().observe(activity, userIdObserver);
     }
 
 }
